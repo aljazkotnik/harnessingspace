@@ -1,1 +1,134 @@
-<h1>Hello!</h1>
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> 
+	
+	
+	<!-- d3 code -->
+	<script src="https://d3js.org/d3.v5.min.js"></script>
+	<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+	<script src="http://dbslice.org/d3-tip.js"></script>
+
+	
+	
+	<!-- NEW gl-matrix, twgl -->
+	<script src="/src/outside/gl-matrix-min.js"></script>
+	<script src="/src/outside/twgl.min.js"></script>
+	
+	
+	<!-- Add icon library -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	
+	<!-- Custom CSS -->
+	<link rel="stylesheet" href="/src/style/canvas.css">
+	
+	
+</head>
+  
+  
+<body>
+
+  <div id="plotWrapper">
+    
+	<div>
+		<button class="btn" id="tsne">t-sne</button>
+		<button class="btn" id="kmeans">k-means</button>
+	</div>
+  
+	<div style="position: absolute; height: 100%; width: 100%;">
+	<canvas id="plotcanvas"></canvas>
+    <div class="content"></div>
+	<svg id="overlay"></svg>
+	</div>
+  </div>
+  
+	
+  
+  
+
+  
+  
+  <script type="module">
+  
+    import { dbsliceData } from "/src/core/dbsliceData.js"
+	import * as FILE from "/src/core/fileClasses.js"
+	import {cfD3Contour2d} from "/src/plot/cfD3Contour2d.js"
+	
+	import { kmeans } from "/src/core/kmeans.js"
+  
+  // PROJECTION IS DEFINED BY THE CANVAS SIZE!!
+  
+
+    var nacaDesignations = ['0006', '0008', '0010', '0015', '0018', '0021', '0024', '1408', '1410', '1412', '23012', '23015', '23018', '23021', '23024', '2408', '2410', '2411', '2412', '2415', '2418', '2421', '2424', '4412', '4415', '4418', '4421', '4424', '6412'] // nacaDesignations  
+  
+    var tasks = nacaDesignations.map(function(designation){
+		return {
+			taskId: designation,
+			slice: "/data/xfoil2d/vels_repanelled_naca_" + designation + ".json",
+		}
+	})
+	
+	
+	var plot = new cfD3Contour2d({
+		sliceId: "slice",
+		wrapper: document.getElementById("plotWrapper")
+	})
+	
+	
+	
+	
+	
+	// Ask dbsliceData to load the file.
+	
+	// Import the files
+	let requested = plot.request(tasks)
+	let promises = dbsliceData.importing.batch(requested.classref, requested.files)
+	
+	
+	
+	// Launch a task upon loading completion.
+	Promise.allSettled( promises ).then(function(promiseobjs){
+		
+		// Pipe the results back into the contour.
+		let fileobjs = promiseobjs
+		  .filter(function(promiseobj){
+			return promiseobj.value.content != undefined 
+		  })
+		  .map(d=>d.value)
+		
+		plot.update(fileobjs)
+		
+	}) // then
+	
+	
+	// Add functionality to the buttons.
+	d3.select( document.getElementById("tsne") ).on("click", function(){
+		plot.restart()
+	}) // on
+	
+
+	d3.select( document.getElementById("kmeans") ).on("click", function(){
+		plot.cluster()
+	}) // on
+
+
+	
+	
+	console.log(plot)
+	
+	
+	/* If placed into drawTempImage it extracts the pixels of the drawn flow field. Can be used for t-sne actually - it will just group similar domains together!!
+	let gl = config.gl
+	let height = canvas.height
+	let width = canvas.width
+	var pixels = new Uint8Array( width*height* 4);
+	gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+	console.log(pixels, d3.extent(pixels), height, width); // Uint8Array
+	*/
+	
+  </script>
+  
+  
+</body>
+</html>
