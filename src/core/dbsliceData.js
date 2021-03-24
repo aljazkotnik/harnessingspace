@@ -1,6 +1,6 @@
 // `dbsliceData' is the object that contains all the loaded metadata, the loaded on-demand files, and all crossfilter functionality that allows interactive filtering. It can perform all the updates to the metadata that may be initiated by the user.
-import * as FILE from "/src/core/fileClasses.js"
-import { helpers } from "/src/core/helpers.js"
+import * as FILE from "/harnessingspace/src/core/fileClasses.js"
+import { helpers } from "/harnessingspace/src/core/helpers.js"
 
 export var dbsliceData = {
 	
