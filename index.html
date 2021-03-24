@@ -48,8 +48,8 @@
   
 
   
-  
-  <script type="module">
+  <script src="/harnessingspace/build/bundle.js"></script>
+  <!--script type="module">
   
     import { dbsliceData } from "/harnessingspace/src/core/dbsliceData.js"
 	import * as FILE from "/harnessingspace/src/core/fileClasses.js"
@@ -111,23 +111,8 @@
 	d3.select( document.getElementById("kmeans") ).on("click", function(){
 		plot.cluster()
 	}) // on
-
-
 	
-	
-	console.log(plot)
-	
-	
-	/* If placed into drawTempImage it extracts the pixels of the drawn flow field. Can be used for t-sne actually - it will just group similar domains together!!
-	let gl = config.gl
-	let height = canvas.height
-	let width = canvas.width
-	var pixels = new Uint8Array( width*height* 4);
-	gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-	console.log(pixels, d3.extent(pixels), height, width); // Uint8Array
-	*/
-	
-  </script>
+  </script -->
   
   
 </body>
