@@ -13,15 +13,15 @@
 	
 	
 	<!-- NEW gl-matrix, twgl -->
-	<script src="/src/outside/gl-matrix-min.js"></script>
-	<script src="/src/outside/twgl.min.js"></script>
+	<script src="/harnessingspace/src/outside/gl-matrix-min.js"></script>
+	<script src="/harnessingspace/src/outside/twgl.min.js"></script>
 	
 	
 	<!-- Add icon library -->
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 	
 	<!-- Custom CSS -->
-	<link rel="stylesheet" href="/src/style/canvas.css">
+	<link rel="stylesheet" href="/harnessingspace/src/style/canvas.css">
 	
 	
 </head>
@@ -51,11 +51,11 @@
   
   <script type="module">
   
-    import { dbsliceData } from "/src/core/dbsliceData.js"
-	import * as FILE from "/src/core/fileClasses.js"
-	import {cfD3Contour2d} from "/src/plot/cfD3Contour2d.js"
+    import { dbsliceData } from "/harnessingspace/src/core/dbsliceData.js"
+	import * as FILE from "/harnessingspace/src/core/fileClasses.js"
+	import {cfD3Contour2d} from "/harnessingspace/src/plot/cfD3Contour2d.js"
 	
-	import { kmeans } from "/src/core/kmeans.js"
+	import { kmeans } from "/harnessingspace/src/core/kmeans.js"
   
   // PROJECTION IS DEFINED BY THE CANVAS SIZE!!
   
@@ -65,7 +65,7 @@
     var tasks = nacaDesignations.map(function(designation){
 		return {
 			taskId: designation,
-			slice: "/data/xfoil2d/vels_repanelled_naca_" + designation + ".json",
+			slice: "/harnessingspace/data/xfoil2d/vels_repanelled_naca_" + designation + ".json",
 		}
 	})
 	
