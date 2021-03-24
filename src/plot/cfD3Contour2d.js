@@ -1,15 +1,15 @@
-import { dbsliceData } from "/src/core/dbsliceData.js"
+import { dbsliceData } from "/harnessingspace/src/core/dbsliceData.js"
 // The plots should be able to take care of themselves, therefore they must have access to the data on their own too - thus `dbsliceData' must be imported here.
 
-import { contour2dFile } from "/src/core/fileClasses.js"
+import { contour2dFile } from "/harnessingspace/src/core/fileClasses.js"
 // When requesting the appropriate data the plot must also specify the appropriate file class, therefore it must be imported here.
 
 
-import * as tsnejs from "/src/outside/tsne_module.js"
+import * as tsnejs from "/harnessingspace/src/outside/tsne_module.js"
 // `t-sne' module adapted from: https://github.com/karpathy/tsnejs
 
 
-import * as clustering from "/src/core/kmeans.js"
+import * as clustering from "/harnessingspace/src/core/kmeans.js"
 // Custom implementation of the k-means algorithm.
 
 
