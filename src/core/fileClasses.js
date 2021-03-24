@@ -1,4 +1,4 @@
-	import { helpers } from "/src/core/helpers.js"
+	import { helpers } from "/harnessingspace/src/core/helpers.js"
 	
 	
 	export var errors = {
