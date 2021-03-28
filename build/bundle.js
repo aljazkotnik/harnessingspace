@@ -181,8 +181,8 @@
     throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
   }
 
-  // Refactor into blocks??
   // General helpers
+
   var helpers = {
     isIterable: function isIterable(object) {
       // https://stackoverflow.com/questions/18884249/checking-whether-something-is-iterable
@@ -426,9 +426,9 @@
 
   var dbsliceFile = /*#__PURE__*/function () {
     function dbsliceFile(file, requester) {
-      _classCallCheck(this, dbsliceFile);
+      _classCallCheck(this, dbsliceFile); // How to load if file is an actual File object.
 
-      // How to load if file is an actual File object.
+
       if (file instanceof File) {
         file = {
           url: URL.createObjectURL(file),
@@ -1581,7 +1581,6 @@
 
   }; // dbsliceData
 
-  // utility function
   var assert = function assert(condition, message) {
     if (!condition) {
       throw message || "Assertion failed";
@@ -2042,6 +2041,7 @@
   kmeans: the groups are built by the user. The on-screen positions are not required anymore.
 
   */
+
   var kgroup = /*#__PURE__*/function () {
     function kgroup(refobj, pos) {
       _classCallCheck(this, kgroup);
@@ -2097,9 +2097,9 @@
 
   var kmeans = /*#__PURE__*/function () {
     function kmeans(points) {
-      _classCallCheck(this, kmeans);
+      _classCallCheck(this, kmeans); // The incoming points can be complicated objects. Wrap them appropriately for internal use. The k-means object will require an accessor to hte on-screen position of the incoming objects, as well as to the array that should be used in the k-means. 
 
-      // The incoming points can be complicated objects. Wrap them appropriately for internal use. The k-means object will require an accessor to hte on-screen position of the incoming objects, as well as to the array that should be used in the k-means. 
+
       this.groups = [];
       this.points = points;
       this.i = 0;
@@ -2381,9 +2381,9 @@
 
   var sprite = /*#__PURE__*/function () {
     function sprite(task, parentobj) {
-      _classCallCheck(this, sprite);
+      _classCallCheck(this, sprite); // Should have task, file, graphic
 
-      // Should have task, file, graphic
+
       this.task = task;
       this.file = undefined;
       this.graphic = {
@@ -2401,19 +2401,26 @@
       wrapper.style.top = this.parentobj.graphic.canvas.offsetTop + "px";
       var sceneElement = document.createElement('div');
       sceneElement.className = 'scene-element';
-      wrapper.appendChild(sceneElement);
-      /* Maybe append the name text only on mouseover?
-      const descriptionElement = document.createElement( 'div' );
-      descriptionElement.className = "description-element";
-      descriptionElement.innerText = 'Test scene';
-      wrapper.appendChild( descriptionElement );
-      */
+      wrapper.appendChild(sceneElement); // Maybe append the name text only on mouseover?
 
+      var descriptionElement = document.createElement('div');
+      descriptionElement.className = "description-element";
+      wrapper.appendChild(descriptionElement);
       parentobj.graphic.container.appendChild(wrapper);
       this.graphic.wrapper = wrapper;
       var d3card = d3.select(wrapper).datum(this);
       var dragobj = new dragCard();
-      d3card.call(dragobj.obj);
+      d3card.call(dragobj.obj); // If there are any user given tags, then add them to the description element on mouseover.
+
+      var obj = this;
+      d3.select(wrapper).on("mouseenter", function () {
+        if (obj.task.usertags) {
+          d3.select(descriptionElement).html(obj.task.usertags.join());
+        } // if
+
+      }).on("mouseout", function () {
+        d3.select(descriptionElement).html("");
+      });
     } // constructor
 
 
@@ -2576,7 +2583,8 @@
       value: function checkMembershipOpportunities() {
         var obj = this;
         var groups = obj.parentobj.data.sprites.filter(function (spriteobj) {
-          return spriteobj instanceof spritegroup && spriteobj != obj;
+          // Look for sprites that are groups, are not the current object, and are visible on-screen.
+          return spriteobj instanceof spritegroup && spriteobj != obj && spriteobj.graphic.wrapper.style.display != "none";
         }).filter(function (spritegroup) {
           var wrapper = obj.graphic.wrapper;
           return Math.abs(spritegroup.midpoint[0] - obj.midpoint[0]) < wrapper.offsetWidth / 2 && Math.abs(spritegroup.midpoint[1] - obj.midpoint[1]) < wrapper.offsetHeight / 2;
@@ -2700,10 +2708,18 @@
         var d3card = d3.select(obj.graphic.wrapper);
         d3card.attr("class", "group-item");
         var d3groupUtils = d3card.append("div").attr("class", "group-previews");
-        var d3groupControls = d3card.append("div").attr("class", "group-controls");
+        var d3groupControls = d3card.append("div").attr("class", "group-controls"); // Ungroup
+
         var ungroupButton = d3groupControls.append("a").attr("class", "btn-circle").style("float", "right").append("i").attr("class", "fa fa-" + "close").style("cursor", "pointer");
         ungroupButton.on("click", function () {
+          d3.event.stopPropagation();
           obj.ungroup();
+        }); // Enter
+
+        var enterButton = d3groupControls.append("a").attr("class", "btn-circle").style("float", "right").append("i").attr("class", "fa fa-" + "expand").style("cursor", "pointer");
+        enterButton.on("click", function () {
+          d3.event.stopPropagation();
+          obj.enter();
         }); // Need to implement an ungroup fuctionality? Long click and then a close button??
 
         d3groupControls.style("display", "none"); // Add functionality to activate it.
@@ -2732,7 +2748,27 @@
     }, {
       key: "update",
       value: function update() {
-        var obj = this; // When new members join the group update the preview elements.
+        var obj = this; // Update the covers.
+
+        obj.covers(); // Covers.
+
+        d3.select(obj.graphic.wrapper).select("div.group-previews").selectAll("div.cover-element").data(obj.coversobjs).join(function (enter) {
+          return enter.append("div").attr("class", "cover-element").html(function (d) {
+            return d.name;
+          }).on("mouseenter", function (covermesh) {
+            obj.file = {
+              content: [{
+                data: covermesh
+              }]
+            };
+            obj.parentobj.render();
+          });
+        }, function (update) {
+          return update;
+        }, function (exit) {
+          return exit.remove();
+        }); // join
+        // Members.
 
         d3.select(obj.graphic.wrapper).select("div.group-previews").selectAll("div.preview-element").data(obj.sprites, function (d) {
           return d.task.taskId;
@@ -2764,6 +2800,87 @@
 
         obj.update();
       } // addmembers
+
+    }, {
+      key: "covers",
+      value: function covers() {
+        var obj = this; // Go through the members and calculate the average and variance covers.
+
+        var N = obj.sprites.length; // The mean is required during hte st.dev. calculation.
+
+        var mu = obj.sprites.reduce(function (acc, sprite) {
+          var d = sprite.file.content[0].data;
+
+          if (acc == undefined) {
+            acc = {
+              x: d.x.map(function (x) {
+                return x / N;
+              }),
+              y: d.y.map(function (y) {
+                return y / N;
+              }),
+              Cp: d.Cp.map(function (v) {
+                return v / N;
+              }),
+              size: d.size
+            };
+          } else {
+            d.x.forEach(function (d_, i) {
+              return acc.x[i] += d_ / N;
+            });
+            d.y.forEach(function (d_, i) {
+              return acc.y[i] += d_ / N;
+            });
+            d.Cp.forEach(function (d_, i) {
+              return acc.Cp[i] += d_ / N;
+            });
+          } // if
+
+
+          return acc;
+        }, undefined); // reduce
+
+        var sigma = obj.sprites.reduce(function (acc, sprite) {
+          var d = sprite.file.content[0].data;
+
+          if (acc == undefined) {
+            acc = {
+              x: mu.x,
+              y: mu.y,
+              Cp: d.Cp.map(function (v, i) {
+                return 1 / (N - 1) * Math.pow(v - mu.Cp[i], 2);
+              }),
+              size: d.size
+            };
+          } else {
+            d.Cp.forEach(function (v, i) {
+              return acc.Cp[i] += 1 / (N - 1) * Math.pow(v - mu.Cp[i], 2);
+            });
+          } // if
+
+
+          return acc;
+        }, undefined); // reduce
+        // Sigma should be scaled to the range of the colormap.
+
+        var cprange = d3.extent(mu.Cp);
+        var sigmarange = d3.extent(sigma.Cp);
+        sigma.Cp = sigma.Cp.map(function (v) {
+          return (v - sigmarange[0]) / (sigmarange[1] - sigmarange[0]) * (cprange[1] - cprange[0]) + cprange[0];
+        }); // Add the names.
+
+        mu.name = "&#x3BC";
+        sigma.name = "&#x3C3";
+        obj.coversobjs = [mu, sigma];
+      } // covers
+
+    }, {
+      key: "enter",
+      value: function enter() {
+        var obj = this; // Log the group into hte pipeline of the parent. That should take care of everything else.
+
+        obj.parentobj.entergroup(obj);
+      } // enter
 
     }, {
       key: "ungroup",
@@ -2846,10 +2963,10 @@
 
   var cfD3Contour2d = /*#__PURE__*/function () {
     function cfD3Contour2d(config) {
-      _classCallCheck(this, cfD3Contour2d);
-
-      // What should enter here? A reference to the basic plot structure. And of course the slice it's supposed to draw.  
+      _classCallCheck(this, cfD3Contour2d); // What should enter here? A reference to the basic plot structure. And of course the slice it's supposed to draw.  
       // A `sprite' is an image on the canvas.
+
+
       this.graphic = {
         sliceId: config.sliceId,
         wrapper: config.wrapper,
@@ -2867,7 +2984,8 @@
       this.data = {
         sprites: [],
         urls: [],
-        domain: []
+        domain: [],
+        explorationroot: []
       }; // data
       this.tools = {
         dragged: [],
@@ -2877,7 +2995,8 @@
         draw: makeWebglDrawConfig(this.graphic.canvas),
         lasso: new lasso(this.graphic.overlay, this),
         toolbar: new toolbar(this),
-        trending: undefined
+        tagging: new tagging(this),
+        tsnesettings: new tsnesettings(this)
       }; // tools
       // HANDLE THE ZOOM
 
@@ -2905,8 +3024,8 @@
 
         obj.tools.draw.gl.clear(obj.tools.draw.gl.clearColor(0, 0, 0, 0)); // Collect all the objects that are not currently being moved.
 
-        var stationary = obj.data.sprites.filter(function (obj_) {
-          return obj.tools.dragged.indexOf(obj_) < 0;
+        var stationary = obj.data.sprites.filter(function (spriteobj) {
+          return !obj.tools.dragged.includes(spriteobj);
         });
         stationary.forEach(function (spriteobj) {
           // Find the translation to position the image into the dom container.
@@ -2922,6 +3041,210 @@
 
         obj.correlations();
       } // render
+      // Get ungrouped sprites.
+
+    }, {
+      key: "ungroupedsprites",
+      value: function ungroupedsprites() {
+        var obj = this;
+        var spritegroups = obj.data.sprites.filter(function (sprite) {
+          return sprite instanceof spritegroup;
+        }); // filter
+
+        var sprites = obj.data.sprites.filter(function (sprite) {
+          return !(sprite instanceof spritegroup);
+        }); // filter
+
+        var ungroupedsprites = sprites.filter(function (sprite) {
+          // Return all sprites that are not in any of the groups.
+          return !spritegroups.some(function (spritegroup) {
+            return spritegroup.sprites.includes(sprite);
+          }); // some
+        }); // filter
+
+        return ungroupedsprites;
+      } // ungroupedsprites
+      // Entering and exiting groups
+
+    }, {
+      key: "entergroup",
+      value: function entergroup(spritegroupobj) {
+        var obj = this; // Add this group to the explorationroot to keep track of the position.
+
+        obj.data.explorationroot.push(spritegroupobj); // Now log everything apart from the group members into transit.
+
+        obj.tools.dragged = obj.data.sprites.filter(function (spriteobj) {
+          var isspriteingroup = spritegroupobj.sprites.includes(spriteobj);
+
+          if (!isspriteingroup) {
+            spriteobj.hide();
+          } // if
+
+
+          return !isspriteingroup;
+        }); // Show the ones that should be shown - they were hidden when the group was created.
+
+        spritegroupobj.sprites.forEach(function (spriteobj) {
+          spriteobj.show();
+        }); // Reconstitute any groups that are in here.
+
+        spritegroupobj.sprites.forEach(function (spriteobj) {
+          if (spriteobj instanceof spritegroup) {
+            spriteobj.pile();
+            spriteobj.sprites.forEach(function (sprite) {
+              sprite.loginMovement();
+              sprite.hide();
+            });
+          } // if
+
+        }); // Just keep visualising the pipeline? - Just like in piling.js. This also means that specific exit button is not necessary!!
+
+        obj.visualiseexploration(); // Redraw to remove excess contours. The timeout removes the bug that causes contour to persist...
+
+        setTimeout(function () {
+          obj.render();
+        }, 5);
+      } // entergroup
+
+    }, {
+      key: "visualiseexploration",
+      value: function visualiseexploration() {
+        var obj = this;
+        var div = d3.select("#exploration"); // Remember to include a root button!!
+
+        div.selectAll("button").remove();
+        div.append("button").attr("class", "breadcrumb breadcrumb-root").html("Root: ").on("click", function (spritegroupobj) {
+          // Remove all levels.
+          obj.data.explorationroot.splice(); // Show the ones that should be shown - they were hidden when the group was created.
+
+          obj.tools.dragged = [];
+          obj.data.sprites.forEach(function (spriteobj) {
+            spriteobj.show();
+          }); // Find all the spritegroups that don't have a parent group.
+
+          var spritegroups = obj.data.sprites.filter(function (spriteobj) {
+            return spriteobj instanceof spritegroup;
+          });
+          var parentgroups = spritegroups.filter(function (spritegroupobj) {
+            // Parent groups are those that are not contained in other groups.
+            return !spritegroups.some(function (spritegroupobj_) {
+              spritegroupobj_.sprites.includes(spritegroupobj);
+            }); // some
+          }); // filter
+
+          parentgroups.forEach(function (spriteobj) {
+            spriteobj.pile();
+            spriteobj.sprites.forEach(function (sprite) {
+              sprite.loginMovement();
+              sprite.hide();
+            });
+          }); // forEach
+
+          obj.render();
+        });
+        div.selectAll("button.breadcrumb-level").data(obj.data.explorationroot).enter().append("button").attr("class", "breadcrumb breadcrumb-level").html(function (d, i) {
+          return "Level " + i;
+        }).on("click", function (spritegroupobj) {
+          // Remove anything past this object in hte exploration session.
+          var cutoff = obj.data.explorationroot.indexOf(spritegroupobj);
+          obj.data.explorationroot.splice(cutoff); // Now enter this particular group.
+
+          obj.entergroup(spritegroupobj);
+        });
+      } // visualiseexploration
+      // Arrangement by metadata and tags - THIS SHOULD BE OUTSOURCED
+
+    }, {
+      key: "arrangebymetadata",
+      value: function arrangebymetadata(dim, variable) {
+        var obj = this;
+        var canvas = obj.graphic.view.canvas; // Only sprites should be rearranged, but NOT spritegroups. When arranging by categorical variables they should form scattered piles.
+
+        var ungrouped = obj.ungroupedsprites(); // Also distinguish between the sprites that have the variable, and those that don't.
+
+        var containvar = ungrouped.filter(function (sprite) {
+          return sprite.task[variable];
+        });
+        var missingvar = ungrouped.filter(function (sprite) {
+          return !sprite.task[variable];
+        }); // Missing values should be arranged in the corner!!
+
+        var getposition = obj.getposition(canvas, dim, containvar, variable); // The sprites containing the appropriate variable are arranged according to its value.
+
+        containvar.forEach(function (sprite) {
+          // First get the position values, then only change the dimension that is being adjusted.
+          var pos = sprite.position;
+          pos[dim] = getposition(sprite.task[variable]);
+          sprite.position = pos;
+        }); // forEach
+
+        var arc = 2 * Math.PI / missingvar.length;
+        missingvar.forEach(function (sprite, i) {
+          // Reposition to corner.
+          var offset = [10 * Math.cos(arc * i), 10 * Math.sin(arc * i)];
+          sprite.position = [50, 50].map(function (p, j) {
+            return p + offset[j];
+          });
+        });
+        obj.render();
+      } // arrangebymetadata
+
+    }, {
+      key: "getposition",
+      value: function getposition(canvas, dim, containvar, variable) {
+        var obj = this;
+        var getposition;
+        var iscategorical = categoricals.includes(variable) || variable.startsWith("classified_");
+
+        if (iscategorical) {
+          getposition = obj.getcategoricalpos(canvas, dim, containvar, variable);
+        } else {
+          getposition = obj.getordinalpos(canvas, dim, containvar, variable);
+        } // if
+
+
+        return getposition;
+      } // getposition
+
+    }, {
+      key: "getordinalpos",
+      value: function getordinalpos(canvas, dim, containvar, variable) {
+        var obj = this; // First create a scale to be used for the arrangement.
+
+        var values = containvar.map(function (sprite) {
+          return sprite.task[variable];
+        }); // map
+
+        var scale = obj.arrangescale(canvas, dim, values);
+        return function (d) {
+          return scale(d);
+        };
+      } // arrangeordinalscale
+
+    }, {
+      key: "getcategoricalpos",
+      value: function getcategoricalpos(canvas, dim, containvar, variable) {
+        var obj = this; // First create a scale to be used for the arrangement.
+
+        var mapping = statistics.categoricalmapping(containvar, variable);
+        mapping = dim == 0 ? mapping.x : mapping.y;
+        var values = containvar.map(function (sprite) {
+          return mapping[sprite.task[variable]];
+        }); // map
+
+        var scale = obj.arrangescale(canvas, dim, values);
+        return function (d) {
+          return scale(mapping[d]);
+        };
+      } // arrangeordinalscale
+
+    }, {
+      key: "arrangescale",
+      value: function arrangescale(canvas, dim, values) {
+        // dim == 0 ? x : y
+        var range = dim == 0 ? [canvas.offsetLeft, canvas.offsetLeft + canvas.width - 200] : [canvas.offsetTop, canvas.offsetTop + canvas.height - 200];
+        return d3.scaleLinear().domain(d3.extent(values)).range(range);
+      } // arrangescale
       // t-sne to position cards.
 
     }, {
@@ -2933,14 +3256,12 @@
           return d.file.content[0].data.Cp;
         }); // The options MUST be configured correctly for t-sne to produce meaningful results!!
         // perplexity must be smaller than the number of actual cases, maybe a third or so?
+        // var opt = {}
+        // opt.epsilon = 10; // epsilon is learning rate (10 = default)
+        // opt.perplexity = Math.round( cp.length / 5 ); // roughly how many neighbors each point influences (30 = default)
+        // opt.dim = 2; // dimensionality of the embedding (2 = default)
 
-        var opt = {};
-        opt.epsilon = 10; // epsilon is learning rate (10 = default)
-
-        opt.perplexity = Math.round(cp.length / 5); // roughly how many neighbors each point influences (30 = default)
-
-        opt.dim = 2; // dimensionality of the embedding (2 = default)
-
+        var opt = obj.tools.tsnesettings.data;
         var tsne = new tSNE(opt); // create a tSNE instance
         // initialize the raw data.
 
@@ -3068,11 +3389,15 @@
     }, {
       key: "correlations",
       value: function correlations() {
-        var obj = this; // Update the correlations.
+        var obj = this; // Select just the sprites - spritegroups can't be included in the correlations calculations. Note that by selecting all sprites all grouped sprites are selected anyway.
 
-        var ordinal = ["max_cmb", "max_cmb_pos", "max_t"];
-        var scores = statistics.correlation(obj.data.sprites, ordinal);
-        console.log("Correlations", scores);
+        var sprites = obj.data.sprites.filter(function (sprite) {
+          return !(sprite instanceof spritegroup);
+        }); // filter
+        // Update the correlations. Also allow categorical variables to be used.
+
+        var scores = statistics.correlation(sprites);
+        return scores;
       } // correlations
       // Lasso tools.
 
@@ -3088,17 +3413,22 @@
       key: "onlassoend",
       value: function onlassoend() {
         // Find all the sprites that were selected by the lasso.
-        var obj = this; // Find the circled tasks.
+        var obj = this; // Find the circled tasks, but only consider visible tasks!
 
         var selected = obj.data.sprites.filter(function (spriteobj) {
-          return obj.tools.lasso.iswithin(spriteobj.midpoint);
-        }); // Highlight the corresponding DOM elements.
+          var isselected = false;
 
-        selected.forEach(function (spriteobj) {
-          spriteobj.graphic.wrapper.style.border = "solid 4px gainsboro";
+          if (spriteobj.graphic.wrapper.style.display != "none") {
+            isselected = obj.tools.lasso.iswithin(spriteobj.midpoint);
+          } // if
+
+
+          return isselected;
         }); // Save the current selection.
 
-        obj.tools.selected = selected; // Make a toolbar.
+        obj.tools.selected = selected; // Highlight the corresponding DOM elements.
+
+        obj.highlight(selected, "gainsboro"); // Make a toolbar.
 
         obj.tools.toolbar.show();
       } // onlassoend
@@ -3110,7 +3440,17 @@
         // Create a new `spritegroup', and log it into the `cfD3Contour2d' instance. It should be logged alongside the regular sprites.
         var obj = this; // The obj has access to the lassoed elements under `obj.tools.selected'. If 
 
-        obj.data.sprites.push(new spritegroup(obj.tools.selected, obj)); // Rerender the master canvas.
+        var newgroup = new spritegroup(obj.tools.selected, obj);
+        obj.data.sprites.push(newgroup); // See if the group needs to belong to a parnt group.
+
+        var depth = obj.data.explorationroot.length;
+
+        if (depth > 0) {
+          // Pick the last one to add the group to.
+          obj.data.explorationroot[depth - 1].sprites.push(newgroup);
+        } // if
+        // Rerender the master canvas.
+
 
         obj.render(); // Hide the toolbar.
 
@@ -3118,6 +3458,14 @@
 
         obj.unhighlight();
       } // ongroup
+
+    }, {
+      key: "highlight",
+      value: function highlight(selected, color) {
+        selected.forEach(function (spriteobj) {
+          spriteobj.graphic.wrapper.style.border = "solid 4px " + color;
+        });
+      } // highlight
 
     }, {
       key: "unhighlight",
@@ -3136,6 +3484,24 @@
         } // if
 
       } // unhighlight
+      // Tagging
+
+    }, {
+      key: "ontag",
+      value: function ontag() {
+        var obj = this; // Hide toolbar, but bring up the tagging.
+
+        obj.tools.toolbar.hide(); // Create a tagging instance.
+
+        obj.tools.tagging.show();
+      } // ontag
+
+    }, {
+      key: "ontagoff",
+      value: function ontagoff() {
+        var obj = this;
+        obj.tools.toolbar.show();
+      } // ontagoff
       // Requesting and adding data to the plot.
 
     }, {
@@ -3168,8 +3534,9 @@
 
         obj.data.sprites.forEach(function (spriteobj) {
           spriteobj.setPositionValues(spriteobj.position);
-        }); // The update is the re-render.
+        }); // The position runs the re-render.
 
+        obj.tools.tsnesettings.update();
         obj.position();
       } // update
 
@@ -3550,6 +3917,302 @@
 
     return dragCard;
   }(); // dragCard
+  // tsnesettings
+
+
+  var tsnesettings = /*#__PURE__*/function () {
+    function tsnesettings(parentobj) {
+      _classCallCheck(this, tsnesettings); // Has to have the graphic,
+
+
+      this.graphic = {
+        wrapper: undefined,
+        position: {}
+      }; // graphic
+
+      this.parentobj = parentobj;
+      var p = Math.round(parentobj.data.sprites.length / 5);
+      this.data = {
+        epsilon: 10,
+        perplexity: p < 2 ? 2 : p,
+        dim: 2
+      }; // Make the toolbar.
+
+      var d3toolbar = d3.select(parentobj.graphic.wrapper).append("div").attr("class", "tagging").style("display", "none").style("cursor", "pointer");
+      this.graphic.wrapper = d3toolbar.node(); // Add the dragging.
+
+      var dragobj = new dragCard();
+      d3toolbar.datum(this);
+      d3toolbar.call(dragobj.obj); // MOVE? : Should the assemply of options be moved outside for greater flexibility? Also, how would I otherwise access the functionality required?? 
+
+      var obj = this; // Sliders
+
+      addRange("perplexity", "perplexity", 1, 100, 10);
+      addRange("learn. rate", "epsilon", 1, 100, 10);
+      addButton("close", function (d) {
+        obj.hide();
+      });
+      addButton("check", function (d) {
+        obj.submit();
+      });
+
+      function addButton(icon, event) {
+        d3toolbar.append("button").attr("class", "btn-circle").on("click", event).append("i").attr("class", "fa fa-" + icon).style("cursor", "pointer");
+      } // addButton
+
+
+      function addRange(text, classname, min, max, init) {
+        var div = d3toolbar.append("div").style("display", "block").style("font-family", "helvetica").style("color", "black").html(text);
+        div.append("input").attr("class", classname).attr("type", "range").attr("min", min).attr("max", max).attr("value", init).on("mousedown", function () {
+          // Propagation must be stopped so that the movement is logged as input change, and not drag.
+          d3.event.stopPropagation();
+        });
+      } // addRange
+
+    } // constructor
+
+
+    _createClass(tsnesettings, [{
+      key: "submit",
+      value: function submit() {
+        var obj = this;
+        obj.hide(); // Set the selected values to obj.data
+
+        var perplexitynode = d3.select(obj.graphic.wrapper).select("input.perplexity").node();
+        var epsilonnode = d3.select(obj.graphic.wrapper).select("input.epsilon").node();
+        obj.data.epsilon = epsilonnode.value;
+        obj.data.perplexity = perplexitynode.value;
+        obj.parentobj.restart();
+      } // submit
+
+    }, {
+      key: "update",
+      value: function update() {
+        var obj = this;
+        var p = Math.round(obj.parentobj.data.sprites.length / 5);
+        obj.data = {
+          epsilon: 10,
+          perplexity: p < 2 ? 2 : p,
+          dim: 2
+        };
+      } // update
+
+    }, {
+      key: "show",
+      value: function show() {
+        // Position hte tooltip By finding the mean of all hte selected sprites.
+        var obj = this; // Set the current settings to the ranges.
+        // Offset by the expected tooltip size. How to calculate that when display:none?
+
+        var style = obj.graphic.wrapper.style;
+        style.display = "block";
+        style.left = 20 + "px";
+        style.top = 150 + "px";
+      } // show
+
+    }, {
+      key: "hide",
+      value: function hide() {
+        var obj = this;
+        obj.graphic.wrapper.style.display = "none";
+      } // hide
+
+    }]);
+
+    return tsnesettings;
+  }(); // tsnesettings
+  // Tagging
+
+
+  var tagging = /*#__PURE__*/function () {
+    function tagging(parentobj) {
+      _classCallCheck(this, tagging); // Has to have the graphic,
+
+
+      this.graphic = {
+        wrapper: undefined,
+        position: {}
+      }; // graphic
+
+      this.parentobj = parentobj; // Make the toolbar.
+
+      var d3toolbar = d3.select(parentobj.graphic.wrapper).append("div").attr("class", "tagging").style("cursor", "pointer").style("display", "none");
+      this.graphic.wrapper = d3toolbar.node(); // Add the dragging.
+
+      var dragobj = new dragCard();
+      d3toolbar.datum(this);
+      d3toolbar.call(dragobj.obj); // Make all the functionality here.
+
+      var obj = this; // The input groups. Loose tags, name-value categorical, name-value ordinal.
+
+      var form = d3toolbar.append("div").style("display", "inline-block").append("form");
+      var loosetags = addFormOptionDiv(form, "tag");
+      addTagButton(loosetags, "tag", function () {
+        obj.addtag();
+      });
+      loosetags.append("input").attr("value", "keyword");
+      var categorical = addFormOptionDiv(form, "categorical");
+      addTagButton(categorical, "categorical", function () {
+        obj.addcategorical();
+      });
+      categorical.append("input").attr("value", "name");
+      categorical.append("input").attr("value", "value");
+      var ordinal = addFormOptionDiv(form, "ordinal");
+      addTagButton(ordinal, "ordinal", function () {
+        obj.addordinal();
+      });
+      ordinal.append("input").attr("value", "name");
+      var axisoption = ordinal.append("select");
+      axisoption.append("option").html("x");
+      axisoption.append("option").html("y");
+      var buttongroup = d3toolbar.append("div").style("display", "inline-block").append("div"); // Submit and close buttons.
+
+      buttongroup.append("button").attr("class", "btn-circle").on("click", function (d) {
+        obj.hide();
+        obj.parentobj.ontagoff();
+      }).append("i").attr("class", "fa fa-" + "close").style("cursor", "pointer");
+
+      function addTagButton(owner, text, event) {
+        owner.append("label").attr("class", "label").append("button").attr("class", "label-button").html(text).on("click", event);
+      } // addtagbutton
+
+
+      function addFormOptionDiv(owner, classname) {
+        var option = owner.append("div").append("div").attr("class", classname).style("float", "left").style("text-align", "left");
+        return option;
+      } // addformoptiondiv
+
+    } // constructor
+
+
+    _createClass(tagging, [{
+      key: "show",
+      value: function show() {
+        // Position hte tooltip By finding the mean of all hte selected sprites.
+        var obj = this;
+        var selected = obj.parentobj.tools.selected;
+        var position = selected.reduce(function (total, spriteobj) {
+          var midpoint = spriteobj.midpoint;
+          total.x += midpoint[0] / selected.length;
+          total.y += midpoint[1] / selected.length;
+          return total;
+        }, {
+          x: 0,
+          y: 0
+        }); // Offset by the expected tooltip size. How to calculate that when display:none?
+
+        var style = obj.graphic.wrapper.style;
+        style.display = "block";
+        style.left = position.x - 100 + "px";
+        style.top = position.y - 30 + "px";
+      } // show
+
+    }, {
+      key: "hide",
+      value: function hide() {
+        var obj = this;
+        obj.graphic.wrapper.style.display = "none";
+      } // hide
+      // Specific tagging.
+
+    }, {
+      key: "getinputvalues",
+      value: function getinputvalues(divspec) {
+        var obj = this;
+        var inputs = [];
+        d3.select(obj.graphic.wrapper).select(divspec).selectAll("input").each(function (input) {
+          inputs = inputs.concat(this.value);
+        });
+        return inputs;
+      } // getinputvalues
+
+    }, {
+      key: "addtag",
+      value: function addtag() {
+        var obj = this; // Get the appropriate values.
+
+        var inputs = obj.getinputvalues("div.tag");
+        var tag = inputs[0]; // Add them to the tasks.
+
+        obj.parentobj.tools.selected.forEach(function (spriteobj) {
+          var tags = spriteobj.task.usertags;
+
+          if (tags) {
+            // Check if the tag is already included.
+            if (!tags.includes(tag)) {
+              tags.push(tag);
+            }
+          } else {
+            spriteobj.task.usertags = [tag];
+          } // if
+
+        }); // forEach
+      } // addtag
+
+    }, {
+      key: "addcategorical",
+      value: function addcategorical() {
+        var obj = this; // Get the appropriate values.
+
+        var inputs = obj.getinputvalues("div.categorical");
+        var name = "classified_" + inputs[0];
+        var value = inputs[1]; // Add them to the tasks.
+
+        obj.parentobj.tools.selected.forEach(function (spriteobj) {
+          spriteobj.task[name] = value;
+        }); // forEach
+      } // addcategorical
+
+    }, {
+      key: "addordinal",
+      value: function addordinal() {
+        var obj = this; // Get the appropriate values.
+
+        var inputs = obj.getinputvalues("div.ordinal");
+        var name = "estimated_" + inputs[0];
+        var axisind = inputs[1] == "x" ? 0 : 1; // Add them to the tasks.
+
+        obj.parentobj.tools.selected.forEach(function (spriteobj) {
+          spriteobj.task[name] = spriteobj.positionvalues[axisind];
+        }); // forEach
+      } // addordinal
+
+    }], [{
+      key: "gettagnames",
+      value: function gettagnames(sprites) {
+        var tagnames = sprites.reduce(function (acc, sprite) {
+          // Find all task variables
+          var names = Object.getOwnPropertyNames(sprite.task);
+          var cls = names.filter(function (name) {
+            return name.startsWith("classified_");
+          });
+          var est = names.filter(function (name) {
+            return name.startsWith("estimated_");
+          });
+          acc.classifications = acc.classifications.concat(cls);
+          acc.estimations = acc.estimations.concat(est);
+          return acc;
+        }, {
+          classifications: [],
+          estimations: []
+        });
+        tagnames.classifications = helpers.unique(tagnames.classifications);
+        tagnames.estimations = helpers.unique(tagnames.estimations);
+        return tagnames;
+      } // gettagnames
+
+    }, {
+      key: "gettaggedsprites",
+      value: function gettaggedsprites(sprites, tagname) {
+        return sprites.filter(function (sprite) {
+          return Object.getOwnPropertyNames(sprite.task).includes(tagname);
+        }); // filter
+      } // gettaggedsprites
+
+    }]);
+
+    return tagging;
+  }(); // tagging
   // Lasso
 
 
@@ -3560,9 +4223,9 @@
     The lasso only collects the selected region, and passes it to the user. The search for any data in the graphic must be done by the plot. Lasso does provide functionality (lasso.iswithin) to check whether a particular pixel on the svg is within it.
     */
     function lasso(overlay, parentobj) {
-      _classCallCheck(this, lasso);
+      _classCallCheck(this, lasso); // Declare the most important attributes. Note that the lasso does NOT find it's own selected data! The `selected' attribute is only a placeholder here to allow the user to store the results in it. This is to simplify the lasso code by moving the data identification out.
 
-      // Declare the most important attributes. Note that the lasso does NOT find it's own selected data! The `selected' attribute is only a placeholder here to allow the user to store the results in it. This is to simplify the lasso code by moving the data identification out.
+
       this.svg = overlay;
       this.boundary = []; // Add behavior to the overlay.
 
@@ -3669,9 +4332,9 @@
 
   var toolbar = /*#__PURE__*/function () {
     function toolbar(parentobj) {
-      _classCallCheck(this, toolbar);
+      _classCallCheck(this, toolbar); // Has to have the graphic,
 
-      // Has to have the graphic,
+
       this.graphic = {
         wrapper: undefined,
         position: {}
@@ -3687,19 +4350,19 @@
       d3toolbar.call(dragobj.obj); // MOVE? : Should the assemply of options be moved outside for greater flexibility? Also, how would I otherwise access the functionality required?? 
 
       var obj = this;
-      addButton("stack-overflow", function (d) {
-        return parentobj.ongroup();
-      });
-      addButton("tags", function (d) {
-        return console.log("tag");
-      });
       addButton("close", function (d) {
         obj.hide();
         parentobj.unhighlight();
       });
+      addButton("tags", function (d) {
+        return parentobj.ontag();
+      });
+      addButton("stack-overflow", function (d) {
+        return parentobj.ongroup();
+      });
 
       function addButton(icon, event) {
-        d3toolbar.append("button").attr("class", "btn").on("click", event).append("i").attr("class", "fa fa-" + icon).style("cursor", "pointer");
+        d3toolbar.append("button").attr("class", "btn-circle").on("click", event).append("i").attr("class", "fa fa-" + icon).style("cursor", "pointer");
       } // addButton
 
     } // constructor
@@ -3739,123 +4402,272 @@
     return toolbar;
   }(); // toolbar
   // FOR THIS SOME ADDITIONAL METADATA WILL BE REQUIRED!!
-  // The trending and statistics object.
+  // These are the default ones. Now also check for any user defined ones. For user defined ones
 
+
+  var categoricals = ["series"];
+  var ordinals = ["max_cmb", "max_cmb_pos", "max_t"]; // The trending and statistics object.
 
   var statistics = {
-    drawCorrelation: function drawCorrelation(trendingCtrlGroup) {
-      var i = cfD3Contour2d.interactivity; // Get the scores
+    correlation: function correlation(sprites) {
+      // Categorical variables
+      var categoricalscores = categoricals.map(function (cat) {
+        return statistics.categoricalcorrelation(sprites, cat);
+      }); // map
+      // Ordinal variables.
 
-      var scores = i.statistics.correlation(trendingCtrlGroup.datum().tools.trending); // Get a palette
-
-      var score2clr = d3.scaleLinear().domain([0, 1]).range([0, 0.75]);
-      trendingCtrlGroup.selectAll("select").each(function () {
-        // Determine if it's x or y select
-        var axis = d3.select(this).attr("axis");
-
-        var color = function color(d) {
-          return d3.interpolateGreens(score2clr(Math.abs(d.score[axis])));
-        };
-
-        d3.select(this).selectAll("option").data(scores).join(function (enter) {
-          return enter.append("option").attr("value", function (d) {
-            return d.name;
-          }).html(function (d) {
-            return d.label[axis];
-          }).style("background-color", color);
-        }, function (update) {
-          return update.attr("value", function (d) {
-            return d.name;
-          }).html(function (d) {
-            return d.label[axis];
-          }).style("background-color", color);
-        }, function (exit) {
-          return exit.remove();
-        });
-      });
-    },
-    // drawCorrelation
-    correlation: function correlation(sprites, variables) {
-      var scores = variables.map(function (variable) {
-        // For each of the data variables calculate a correlation.
-        // Collect the data to calculate the correlation.
-        var d = sprites.map(function (sprite) {
-          var pos = sprite.midpoint;
-          return {
-            x: pos[0],
-            y: pos[1],
-            val: sprite.task[variable]
-          }; // return
-        }); // map
-
-        /* Get Spearman's rank correlation scores  (https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient) for the order in a direction.
-        
-        The coefficient is:
-          covariance (x_rank, y_rank )/( sigma(rank_x) sigma(rank_y) )
-        */
-
-        var cov = statistics.covariance(d);
-        var sigma_x = d3.deviation(d, function (d) {
-          return d.x;
-        });
-        var sigma_y = d3.deviation(d, function (d) {
-          return d.y;
-        });
-        var sigma_val = d3.deviation(d, function (d) {
-          return d.val;
-        });
-        sigma_x = sigma_x == 0 ? Infinity : sigma_x;
-        sigma_y = sigma_y == 0 ? Infinity : sigma_y;
-        sigma_val = sigma_val == 0 ? Infinity : sigma_val;
-        var score = {
-          x: cov.x / (sigma_x * sigma_val),
-          y: cov.y / (sigma_y * sigma_val)
-        };
-        var label = {
-          x: score.x < 0 ? "- " + variable : "+ " + variable,
-          y: score.y < 0 ? "- " + variable : "+ " + variable
-        };
-        return {
-          name: variable,
-          label: label,
-          score: score
-        };
+      var ordinalscores = ordinals.map(function (ord) {
+        return statistics.ordinalcorrelation(sprites, ord);
       }); // map
       // Before returning the scores, order them.
 
+      var scores = categoricalscores.concat(ordinalscores);
       scores.sort(function (a, b) {
         return a.score - b.score;
-      });
-      return scores;
+      }); // Also find all the name-value tags added by the user. All categorical tags start with: 'classified_', and all ordinal tags start with 'estimated_'
+      // Taged variables will only be partial correlations - it's not necessary that all variables will have the tags. Also means the correlations need to be calculated one by one.
+
+      var tagvars = tagging.gettagnames(sprites); // Several sprites are required for hte correlation! Make sure that only those are calculated?
+
+      var clsscores = tagvars.classifications.map(function (cls) {
+        var relevant = tagging.gettaggedsprites(sprites, cls);
+        return statistics.categoricalcorrelation(relevant, cls);
+      }); // map
+
+      var estscores = tagvars.estimations.map(function (est) {
+        var relevant = tagging.gettaggedsprites(sprites, est);
+        return statistics.ordinalcorrelation(relevant, est);
+      }); // map
+      // These can now be combined and also returned.
+
+      var partialscores = clsscores.concat(estscores);
+      return {
+        full: scores,
+        partial: partialscores
+      };
     },
     // correlation
     covariance: function covariance(d) {
       // 'd' is an array of observations. Calculate the covariance between x and the metadata variable.
       var N = d.length;
-      var mu_x = d3.sum(d, function (d) {
-        return d.x;
+      var mu_var0 = d3.sum(d, function (d) {
+        return d.var0;
       }) / N;
-      var mu_y = d3.sum(d, function (d) {
-        return d.y;
+      var mu_var1 = d3.sum(d, function (d) {
+        return d.var1;
       }) / N;
-      var mu_val = d3.sum(d, function (d) {
-        return d.val;
-      }) / N;
-      var sumx = 0;
-      var sumy = 0;
+      var sum = 0;
 
       for (var i = 0; i < N; i++) {
-        sumx += (d[i].x - mu_x) * (d[i].val - mu_val);
-        sumy += (d[i].y - mu_y) * (d[i].val - mu_val);
+        sum += (d[i].var0 - mu_var0) * (d[i].var1 - mu_var1);
       }
 
+      return 1 / (N - 1) * sum;
+    },
+    // covariance
+    spearman: function spearman(d) {
+      /* Get Spearman's rank correlation scores  (https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient) for the order in a direction.
+      	
+      The coefficient is:
+        covariance (rank_var0, rank_var1 )/( sigma(rank_var0) sigma(rank_var1) )
+      */
+      var cov = statistics.covariance(d);
+      var sigma_var0 = d3.deviation(d, function (d) {
+        return d.var0;
+      });
+      var sigma_var1 = d3.deviation(d, function (d) {
+        return d.var1;
+      });
+      sigma_var0 = sigma_var0 == 0 ? Infinity : sigma_var0;
+      sigma_var1 = sigma_var1 == 0 ? Infinity : sigma_var1;
+      return cov / (sigma_var0 * sigma_var1);
+    },
+    // spearman
+    categoricalmapping: function categoricalmapping(sprites, variable) {
+      var uniquevals = helpers.unique(sprites.map(function (sprite) {
+        return sprite.task[variable];
+      })); // unique
+      // Find the appropriate mapping given the on-screen arrangement. For each unique categorical value calculate the median.
+
+      var medianpoints = uniquevals.map(function (uniqueval) {
+        var relevant = sprites.filter(function (sprite) {
+          return sprite.task[variable] == uniqueval;
+        }); // Find the medianpoint.
+
+        return {
+          name: uniqueval,
+          x: d3.median(relevant, function (sprite) {
+            return sprite.midpoint[0];
+          }),
+          y: d3.median(relevant, function (sprite) {
+            return sprite.midpoint[1];
+          })
+        }; // medianpoint
+      }); // map
+      // Sort the median points and convert them into direct maps?
+
+      var xmap = medianpoints.sort(function (a, b) {
+        return a.x - b.x;
+      }).reduce(function (acc, mpoint, i) {
+        acc[mpoint.name] = i;
+        return acc;
+      }, {});
+      var ymap = medianpoints.sort(function (a, b) {
+        return a.y - b.y;
+      }).reduce(function (acc, mpoint, i) {
+        acc[mpoint.name] = i;
+        return acc;
+      }, {});
       return {
-        x: 1 / (N - 1) * sumx,
-        y: 1 / (N - 1) * sumy
+        x: xmap,
+        y: ymap
       };
-    } // covariance
+    },
+    // categoricalmapping
+    categoricalcorrelation: function categoricalcorrelation(sprites, categorical) {
+      // Collect and encode the categorical variables. The encoding in the x and y directions may differ.
+      var variable = categorical; // Get the mapping from labels to numbers.
+
+      var mapping = statistics.categoricalmapping(sprites, variable); // Because the categorical encoding can be different along both axes, the correlations need to be calculated twice.
+      // The midpoints are now ready - do the scores themselves
+
+      var xd = sprites.map(function (sprite) {
+        var pos = sprite.midpoint;
+        return {
+          var0: pos[0],
+          var1: mapping.x[sprite.task[variable]]
+        }; // return
+      }); // map
+
+      var yd = sprites.map(function (sprite) {
+        var pos = sprite.midpoint;
+        return {
+          var0: pos[1],
+          var1: mapping.y[sprite.task[variable]]
+        }; // return
+      }); // map
+
+      var xscore = statistics.spearman(xd);
+      var yscore = statistics.spearman(yd);
+      var label = {
+        x: xscore < 0 ? "- " + variable : "+ " + variable,
+        y: yscore < 0 ? "- " + variable : "+ " + variable
+      };
+      return {
+        name: variable,
+        label: label,
+        score: {
+          x: xscore,
+          y: yscore
+        }
+      };
+    },
+    // categoricalcorrelation
+    ordinalcorrelation: function ordinalcorrelation(sprites, ordinal) {
+      var variable = ordinal; // For each of the data variables calculate a correlation.
+
+      var xd = sprites.map(function (sprite) {
+        var pos = sprite.midpoint;
+        return {
+          var0: pos[0],
+          var1: sprite.task[variable]
+        }; // return
+      }); // map
+
+      var yd = sprites.map(function (sprite) {
+        var pos = sprite.midpoint;
+        return {
+          var0: pos[1],
+          var1: sprite.task[variable]
+        }; // return
+      }); // map
+
+      var xscore = statistics.spearman(xd);
+      var yscore = statistics.spearman(yd);
+      var label = {
+        x: xscore < 0 ? "- " + variable : "+ " + variable,
+        y: yscore < 0 ? "- " + variable : "+ " + variable
+      };
+      return {
+        name: variable,
+        label: label,
+        score: {
+          x: xscore,
+          y: yscore
+        }
+      };
+    } // ordinalcorrelation
 
   }; // statistics
+
+  var correlations = {
+    build: function build(scores) {
+      // Use blue or red to encode whether it's negative or positive?
+      var div = d3.select("#correlation-container");
+      var svg = div.select("svg");
+      var svgrect = svg.node().getBoundingClientRect(); // Get a palette
+
+      var score2px = {
+        clr: d3.scaleLinear().domain([0, 1]).range([0, 0.75]),
+        x: d3.scaleLinear().domain([-1, 1]).range([0.1 * svgrect.width, 0.9 * svgrect.width]),
+        y: d3.scaleLinear().domain([-1, 1]).range([0.1 * svgrect.height, 0.9 * svgrect.height])
+      }; // score2px
+      // The same variable can have different scores in two directions. How to color code that?
+      // var color = d=>d3.interpolateGreens(score2clr(Math.abs(d.score[axis])))
+      // Draw the full correlations on the screen.
+
+      correlations.drawscores(div, "metadata", scores.full, score2px, "gainsboro");
+      correlations.drawscores(div, "tagged", scores.partial, score2px, "yellow"); // Draw the axis.
+
+      correlations.drawaxis(svg, score2px); // Position hte 
+
+      div.select(".btn-danger").style("left", window.innerWidth - 80 + "px").style("top", 20 + "px");
+    },
+    // build
+    update: function update(scores) {
+      // Use blue or red to encode whether it's negative or positive?
+      var div = d3.select("#correlation-container");
+      var svg = div.select("svg");
+      var svgrect = svg.node().getBoundingClientRect(); // Get a palette
+
+      var score2clr = d3.scaleLinear().domain([0, 1]).range([0, 0.75]);
+      var xscore2px = d3.scaleLinear().domain([-1, 1]).range([0.1 * svgrect.width, 0.9 * svgrect.width]);
+      var yscore2px = d3.scaleLinear().domain([-1, 1]).range([0.1 * svgrect.height, 0.9 * svgrect.height]); // The same variable can have different scores in two directions. How to color code that?
+
+      var buttons = div.selectAll("g.variable").selectAll("button").data(scores, function (d) {
+        return d.name;
+      });
+      buttons.style("left", function (d) {
+        return xscore2px(d.score.x) + "px";
+      }).style("top", function (d) {
+        return yscore2px(d.score.y) + "px";
+      });
+    },
+    // update
+    drawaxis: function drawaxis(svg, score2px) {
+      svg.selectAll("g.axis").remove();
+      var svgrect = svg.node().getBoundingClientRect();
+      var xaxis = d3.axisBottom(score2px.x);
+      var yaxis = d3.axisLeft(score2px.y);
+      svg.append("g").attr("class", "axis").attr("transform", "translate(0," + svgrect.height / 2 + ")").call(xaxis);
+      svg.append("g").attr("class", "axis").attr("transform", "translate(" + svgrect.width / 2 + ",0)").call(yaxis);
+    },
+    // drawaxis
+    drawscores: function drawscores(div, gclass, scores, score2px, color) {
+      div.selectAll("g." + gclass).remove();
+      var variables = div.selectAll("g." + gclass).data(scores).enter().append("g").attr("class", gclass);
+      variables.append("button").attr("class", "btn-small").style("position", "absolute").style("background-color", color).style("left", function (d) {
+        return score2px.x(d.score.x) + "px";
+      }).style("top", function (d) {
+        return score2px.y(d.score.y) + "px";
+      }).html(function (d) {
+        return d.name;
+      });
+    } // drawscores
+
+  }; // correlations
+
+  // This is just the airfoils example.
 
   var nacaDesignations = ['0006', '0008', '0010', '0015', '0018', '0021', '0024', '1408', '1410', '1412', '23012', '23015', '23018', '23021', '23024', '2408', '2410', '2411', '2412', '2415', '2418', '2421', '2424', '4412', '4415', '4418', '4421', '4424', '6412']; // nacaDesignations  
 
@@ -3863,7 +4675,8 @@
     var five_series = name.length == 5;
     return {
       taskId: name,
-      slice: "/harnessingspace/data/xfoil2d/vels_repanelled_naca_" + name + ".json",
+      slice: "/data/xfoil2d/vels_repanelled_naca_" + name + ".json",
+      series: name.length + "-series",
       max_cmb: five_series ? 1.761 : Number(name.substr(0, 1)),
       max_cmb_pos: Number(name.substr(1, 1)),
       max_t: Number(name.substr(name.length - 2, 2))
@@ -3871,7 +4684,7 @@
   });
   var plot = new cfD3Contour2d({
     sliceId: "slice",
-    wrapper: document.getElementById("plotWrapper")
+    wrapper: document.getElementById("airfoils")
   }); // Ask dbsliceData to load the file.
   // Import the files
 
@@ -3887,14 +4700,72 @@
     });
     plot.update(fileobjs);
   }); // then
+  // All of below can be moved to cfD3Contour2d or appropriate app file.
   // Add functionality to the buttons.
 
   d3.select(document.getElementById("tsne")).on("click", function () {
-    plot.restart();
+    plot.tools.tsnesettings.show(); // plot.restart()
   }); // on
 
   d3.select(document.getElementById("kmeans")).on("click", function () {
     plot.cluster();
+  }); // on
+
+  d3.select(document.getElementById("correlation-show")).on("click", function () {
+    plot.tools.toolbar.hide(); // Get the correlations, and update them on the screen.
+
+    d3.select("#correlation-container").style("display", "");
+    var scores = plot.correlations(); // The drawing should actually be done here so that the variable dragging can have access to the plot.
+
+    correlations.build(scores);
+    var drag = d3.drag().on("start", function (d) {
+      d.startposition = d3.mouse(this.parentElement);
+    }).on("end", function (d) {
+      // Find the position of the mouse relative to the position of the button.
+      var startposition = d.startposition;
+      var endposition = d3.mouse(this.parentElement);
+      var dx = Math.abs(endposition[0] - startposition[0]);
+      var dy = Math.abs(endposition[1] - startposition[1]);
+
+      if (dy > 50) {
+        plot.arrangebymetadata(0, d.name);
+
+        var _scores = plot.correlations();
+
+        correlations.update(_scores);
+      } // if
+
+
+      if (dx > 50) {
+        plot.arrangebymetadata(1, d.name);
+
+        var _scores2 = plot.correlations();
+
+        correlations.update(_scores2);
+      } // if
+
+    }); // on
+
+    d3.select("#correlation-container").selectAll("button.btn-small").call(drag);
+    d3.select("#correlation-container").select("g.tagged").selectAll("button.btn-small").on("mouseenter", function (score) {
+      var relevant = plot.ungroupedsprites().filter(function (sprite) {
+        return sprite.task[score.name];
+      });
+      plot.highlight(relevant, "yellow");
+    }).on("mouseout", function (score) {
+      plot.unhighlight();
+      plot.highlight(plot.tools.selected, "gainsboro");
+    });
+  }); // on
+
+  d3.select(document.getElementById("correlation-hide")).on("click", function () {
+    // Hige the correlations.
+    d3.select("#correlation-container").style("display", "none"); // Bring back the toolbar if anything is selected in the lasso.
+
+    if (plot.tools.selected.length > 0) {
+      plot.tools.toolbar.show();
+    } // if
+
   }); // on
 
 }());
