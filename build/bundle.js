@@ -4691,7 +4691,7 @@
   var requested = plot.request(tasks);
   var promises = dbsliceData.importing.batch(requested.classref, requested.files); // Launch a task upon loading completion.
 
-  Promise.allSettled(promises).then(function (promiseobjs) {
+  allSettled(promises).then(function (promiseobjs) {
     // Pipe the results back into the contour.
     var fileobjs = promiseobjs.filter(function (promiseobj) {
       return promiseobj.value.content != undefined;
@@ -4700,8 +4700,25 @@
     });
     plot.update(fileobjs);
   }); // then
-  // All of below can be moved to cfD3Contour2d or appropriate app file.
+
+  function allSettled(promises) {
+    var wrappedPromises = promises.map(function (p) {
+      return Promise.resolve(p).then(function (val) {
+        return {
+          status: 'fulfilled',
+          value: val
+        };
+      }, function (err) {
+        return {
+          status: 'rejected',
+          reason: err
+        };
+      });
+    });
+    return Promise.all(wrappedPromises);
+  } // All of below can be moved to cfD3Contour2d or appropriate app file.
   // Add functionality to the buttons.
+
 
   d3.select(document.getElementById("tsne")).on("click", function () {
     plot.tools.tsnesettings.show(); // plot.restart()
