@@ -4675,7 +4675,7 @@
     var five_series = name.length == 5;
     return {
       taskId: name,
-      slice: "./data/xfoil2d/vels_repanelled_naca_" + name + ".json",
+      slice: ".harnessingspace/data/xfoil2d/vels_repanelled_naca_" + name + ".json",
       series: name.length + "-series",
       max_cmb: five_series ? 1.761 : Number(name.substr(0, 1)),
       max_cmb_pos: Number(name.substr(1, 1)),
