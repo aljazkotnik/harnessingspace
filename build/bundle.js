@@ -2862,6 +2862,8 @@
           return acc;
         }, undefined); // reduce
         // Sigma should be scaled to the range of the colormap.
+        
+        sigma.Cp = sigma.Cp.map(function(v){return v**0.5});
 
         var cprange = d3.extent(mu.Cp);
         var sigmarange = d3.extent(sigma.Cp);
