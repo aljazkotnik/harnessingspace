@@ -1712,5 +1712,13 @@
   d3.select("#tsne").on("click", function () {
     dbsliceData.tsnesettings.show();
   });
+  
+  d3.select(document.getElementById("help-show")).on("click", function () {
+	  d3.select("#help-container").style("display", "");
+  }); // on
+  
+  d3.select(document.getElementById("help-hide")).on("click", function () {
+	  d3.select("#help-container").style("display", "none"); //
+  }); // on
 
 }());
