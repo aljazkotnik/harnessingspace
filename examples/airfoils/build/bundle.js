@@ -4793,5 +4793,13 @@
   d3.select(document.getElementById("help-hide")).on("click", function () {
 	  d3.select("#help-container").style("display", "none"); //
   }); // on
+  
+  d3.select(document.getElementById("info-show")).on("click", function () {
+	  d3.select("#info-container").style("display", "");
+  }); // on
+  
+  d3.select(document.getElementById("info-hide")).on("click", function () {
+	  d3.select("#info-container").style("display", "none"); //
+  }); // on
 
 }());

@@ -721,6 +721,8 @@
     tsnesettings: undefined,
     view: undefined
   };
+  var categoricals = ["magnification", "detector", "contributor_key", "primary_microconstituent", "anneal_temp_unit", "cool_method"];
+  var ordinals = ["micrograph_id", "valPerPx", "anneal_temperature", "anneal_time_min", "anneal_time_hour"];
   d3.csv("./data/subset_merged_micrograph_sample.csv").then(function (metadata) {
     // Convert the values to numbers.
     metadata.forEach(function (row) {
@@ -1428,9 +1430,7 @@
   var tb = new toolbar(tbparentobj); // Correlations and we're done here
   // FOR THIS SOME ADDITIONAL METADATA WILL BE REQUIRED!!
   // These are the default ones. Now also check for any user defined ones. For user defined one
-
-  var categoricals = ["magnification", "detector", "contributor_key", "primary_microconstituent", "anneal_temp_unit", "cool_method"];
-  var ordinals = ["micrograph_id", "valPerPx", "anneal_temperature", "anneal_time_min", "anneal_time_hour"]; // The trending and statistics object.
+  // The trending and statistics object.
 
   var statistics = {
     correlation: function correlation(sprites) {
@@ -1661,8 +1661,8 @@
 
   d3.select("#enter").on("click", ongroup);
   d3.select("#exit").on("click", onungroup);
-  d3.select("#correlation-show").on("click", function () {
-    // If selection has sprites then only retain those.
+
+  function makecorrelations(svg) {
     var scores_;
 
     if (dbsliceData.selected.length > 1) {
@@ -1672,10 +1672,7 @@
     } // if
 
 
-    console.log(scores_);
-    var container = d3.select("#correlation-container");
-    container.style("display", "");
-    var svg = container.select("svg"); // Draw on the svg.
+    console.log(scores_); // Draw on the svg.
 
     var xscale = d3.scaleLinear().domain([-1.1, 1.1]).range([0, 500]);
     svg.selectAll("circle").remove();
@@ -1692,13 +1689,101 @@
       d3.select("#tooltip").style("display", "").style("left", d3.event.clientX + "px").style("top", d3.event.clientY - 20 + "px").html(d.name);
     }).on("mouseout", function () {
       d3.select("#tooltip").style("display", "none");
-    }); // Let's add some axis.
+    }); // Add the click and drag:
+    // Let's add some axis.
 
     svg.selectAll("g.axis").remove();
     var xaxis = d3.axisBottom(xscale);
     var yaxis = d3.axisRight(xscale);
     svg.append("g").attr("class", "axis").call(xaxis);
     svg.append("g").attr("class", "axis").call(yaxis);
+  }
+
+  function addcorrelationdragging(svg) {
+    var drag = d3.drag().on("start", function (d) {
+      d.mouse = d3.mouse(this.parentElement);
+    }).on("end", function (d) {
+      // Find the position of the mouse relative to the position of the button.
+      var startposition = d.mouse;
+      var endposition = d3.mouse(this.parentElement);
+      var dx = Math.abs(endposition[0] - startposition[0]);
+      var dy = Math.abs(endposition[1] - startposition[1]);
+
+      if (dy > 50 || dx > 50) {
+        var axis = dy > dx ? 1 : 0;
+        arrangebymetadata(axis, d.name); // Now just close the menu.
+
+        d3.select("#correlation-container").style("display", "none");
+      } // if
+
+    }); // on
+
+    svg.selectAll("circle").call(drag);
+  }
+
+  function ungroupedsprites() {
+    return dbsliceData.sprites;
+  }
+
+  function arrangebymetadata(dim, variable) {
+    console.log("Rearrange images", dim, variable); // Only sprites should be rearranged, but NOT spritegroups. When arranging by categorical variables they should form scattered piles.
+
+    var ungrouped = ungroupedsprites(); // Also distinguish between the sprites that have the variable, and those that don't.
+
+    var containvar = ungrouped.filter(function (sprite) {
+      return sprite.task[variable];
+    });
+    var missingvar = ungrouped.filter(function (sprite) {
+      return !sprite.task[variable];
+    });
+    var view = dbsliceData.view;
+    var vals = containvar.map(function (sprite) {
+      return sprite.task[variable];
+    });
+    var range = dim == 0 ? view.scales.x.range() : view.scales.y.range();
+    var scale;
+
+    if (categoricals.includes(variable)) {
+      var vals_ = helpers.unique(vals);
+      scale = d3.scaleOrdinal().domain(vals_).range(vals_.map(function (v, i) {
+        return (i + 1) / vals_.length;
+      }));
+    } else {
+      scale = d3.scaleLinear().domain(d3.extent(vals)).range(range);
+    } // The sprites containing the appropriate variable are arranged according to its value.
+
+
+    containvar.forEach(function (sprite) {
+      var style = sprite.graphic.style; // Adjust both the internal sprite position value, as well as the actual image position.
+
+      if (dim == 0) {
+        style.left = scale(sprite.task[variable]) + "px";
+      } else if (dim == 1) {
+        style.top = scale(sprite.task[variable]) + "px";
+      } // if
+      // Now change the position value.
+
+
+      sprite.position = [view.scales.x.invert(parseFloat(style.left)), view.scales.y.invert(parseFloat(style.top))];
+    }); // forEach
+
+    var arc = 2 * Math.PI / missingvar.length;
+    missingvar.forEach(function (sprite, i) {
+      // Reposition to corner.
+      var offset = [10 * Math.cos(arc * i), 10 * Math.sin(arc * i)];
+      sprite.position = [50, 50].map(function (p, j) {
+        return p + offset[j];
+      });
+    });
+  }
+
+  d3.select("#correlation-show").on("click", function () {
+    // If selection has sprites then only retain those.
+    var container = d3.select("#correlation-container");
+    container.style("display", "");
+    var svg = container.select("svg");
+    makecorrelations(svg);
+    addcorrelationdragging(svg);
   });
   d3.select("#correlation-hide").on("click", function () {
     d3.select("#correlation-container").style("display", "none");
@@ -1706,5 +1791,20 @@
   d3.select("#tsne").on("click", function () {
     dbsliceData.tsnesettings.show();
   });
+  d3.select(document.getElementById("help-show")).on("click", function () {
+    d3.select("#help-container").style("display", "");
+  }); // on
+
+  d3.select(document.getElementById("help-hide")).on("click", function () {
+    d3.select("#help-container").style("display", "none"); //
+  }); // on
+
+  d3.select(document.getElementById("info-show")).on("click", function () {
+    d3.select("#info-container").style("display", "");
+  }); // on
+
+  d3.select(document.getElementById("info-hide")).on("click", function () {
+    d3.select("#info-container").style("display", "none"); //
+  }); // on
 
 }());
